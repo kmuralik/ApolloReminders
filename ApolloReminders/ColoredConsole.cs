@@ -53,12 +53,12 @@ namespace bcd
 
         #region ***** CONSTRUCTORS *****
 
-        public ColoredConsole(int consoleWidth = 80, 
-            LineStyle lineStyle = LineStyle.Double, 
-            TextPosition textPosition = TextPosition.Left, 
+        public ColoredConsole(int consoleWidth = 80,
+            LineStyle lineStyle = LineStyle.Double,
+            TextPosition textPosition = TextPosition.Left,
             TextStyle textStyle = TextStyle.None,
-            ConsoleColor backColor = ConsoleColor.Black, 
-            ConsoleColor foreColor = ConsoleColor.White, 
+            ConsoleColor backColor = ConsoleColor.Black,
+            ConsoleColor foreColor = ConsoleColor.White,
             ConsoleColor lineColor = ConsoleColor.Yellow)
         {
             this.ConsoleWidth = consoleWidth;
@@ -108,15 +108,16 @@ namespace bcd
                 drawVDHSLine();
         }
 
-        public void Write(string message, 
-            LineStyle lineStyle = LineStyle.Double, 
-            TextPosition textPosition = TextPosition.Left, 
-            TextStyle textStyle = TextStyle.None, 
-            ConsoleColor backcolor = ConsoleColor.Black, 
-            ConsoleColor foreColor = ConsoleColor.White, 
+        public void Write(string message,
+            LineStyle lineStyle = LineStyle.Double,
+            TextPosition textPosition = TextPosition.Left,
+            int tabStop = 0,
+            TextStyle textStyle = TextStyle.None,
+            ConsoleColor backcolor = ConsoleColor.Black,
+            ConsoleColor foreColor = ConsoleColor.White,
             ConsoleColor lineColor = ConsoleColor.Yellow)
         {
-            writeLine(message, lineStyle, textPosition, textStyle, backcolor, foreColor, lineColor);
+            writeLine(message, lineStyle, textPosition, tabStop, textStyle, backcolor, foreColor, lineColor);
         }
 
         #endregion
@@ -129,7 +130,7 @@ namespace bcd
             Console.ForegroundColor = ConsoleLineColor;
             switch (ls)
             {
-                case LineStyle.Single:                    
+                case LineStyle.Single:
                     Console.WriteLine($"{SGL_TL}{new string(SGL_TB, ConsoleWidth - 2)}{SGL_TR}");
                     break;
                 case LineStyle.Double:
@@ -189,9 +190,10 @@ namespace bcd
             Console.ResetColor();
         }
 
-        private void writeLine(string msg, 
-            LineStyle ls = LineStyle.Double, 
-            TextPosition tp = TextPosition.Left, 
+        private void writeLine(string msg,
+            LineStyle ls = LineStyle.Double,
+            TextPosition tp = TextPosition.Left,
+            int tab = 0,
             TextStyle ts = TextStyle.None,
             ConsoleColor bc = ConsoleColor.Black,
             ConsoleColor fc = ConsoleColor.White,
@@ -206,7 +208,7 @@ namespace bcd
                 if (ls == LineStyle.Double) lr = DBL_LR; else lr = SGL_LR;
                 Console.Write($"{lr} ");
                 Console.ForegroundColor = fc;
-                Console.Write(formatMessage(msg, tp, ts));
+                Console.Write(formatMessage(msg, tp, tab, ts));
                 Console.ForegroundColor = lc;
                 Console.WriteLine($" {lr}");
                 Console.ResetColor();
@@ -218,23 +220,23 @@ namespace bcd
             //
         }
 
-        private string formatMessage(string msg, TextPosition tp, TextStyle ts)
+        private string formatMessage(string msg, TextPosition tp, int tab, TextStyle ts)
         {
             switch (ts)
             {
                 case TextStyle.Spaced:
-                    return padString(msg.Aggregate(string.Empty, (c, i) => c + i + ' '), tp);
+                    return padString(msg.Aggregate(string.Empty, (c, i) => c + i + ' '), tp, tab);
                 case TextStyle.Caps:
-                    return padString(msg.ToUpper(), tp);
+                    return padString(msg.ToUpper(), tp, tab);
                 case TextStyle.SpacedCaps:
-                    return padString(msg.Aggregate(string.Empty, (c, i) => c + i + ' ').ToUpper(), tp);
+                    return padString(msg.Aggregate(string.Empty, (c, i) => c + i + ' ').ToUpper(), tp, tab);
                 case TextStyle.None:
                 default:
-                    return padString(msg, tp);
+                    return padString(msg, tp, tab);
             }
         }
 
-        private string padString(string str, TextPosition tp)
+        private string padString(string str, TextPosition tp, int tab)
         {
             // pad the string 
             var padding = AvailableWidth - str.Length;
@@ -246,6 +248,7 @@ namespace bcd
                     return str.PadLeft(AvailableWidth);
                 case TextPosition.Left:
                 default:
+                    str = str.PadLeft(str.Length + tab * 4);
                     return str.PadRight(AvailableWidth);
             }
         }
