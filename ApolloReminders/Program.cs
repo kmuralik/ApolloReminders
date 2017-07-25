@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using bcd;
+using System.Data;
+using abcd = bcd.ColoredConsole;
 
 namespace ApolloReminders
 {
@@ -11,40 +8,44 @@ namespace ApolloReminders
     {
         static void Main(string[] args)
         {
-            var cc = new bcd.ColoredConsole();
+            var cc = new abcd();
+            var reminders = new Reminders();
+            //
+            cc.DrawBox("Apollo Reminders", abcd.LineStyle.Double, abcd.TextPosition.Center, 0, abcd.TextStyle.SpacedCaps, ConsoleColor.DarkBlue, ConsoleColor.Green, ConsoleColor.Yellow);
+
             cc.DrawTopLine();
-            cc.Write("Apollo Reminders", textPosition: ColoredConsole.TextPosition.Center, textStyle: ColoredConsole.TextStyle.SpacedCaps);
-            cc.DrawSeparator(ColoredConsole.LineStyle.Double, ColoredConsole.LineStyle.Double);
-            // get all reminders that need to run today            
-            cc.Write("[A] Get Today's Reminders",foreColor: ConsoleColor.Cyan);
+            // get all reminders that need to run today
+            var dtReminders = reminders.GetReminders();
+            var todayCount = dtReminders.Rows.Count;
+            cc.Write("[A] Get Today's Reminders", foreColor: ConsoleColor.Cyan);
+            cc.DrawSeparator(abcd.LineStyle.Double, abcd.LineStyle.Double);
             // get the count and display
-            cc.Write("A total of 4 reminders found", textPosition: ColoredConsole.TextPosition.Left, tabStop: 1, foreColor: ConsoleColor.Gray);
-            cc.DrawSeparator(ColoredConsole.LineStyle.Double, ColoredConsole.LineStyle.Single);
+            cc.Write($"A total of {todayCount} reminders found", textPosition: abcd.TextPosition.Left, tabStop: 1, foreColor: ConsoleColor.Gray);
+            cc.DrawSeparator(abcd.LineStyle.Double, abcd.LineStyle.Double);
             // loop through each reminder
             cc.Write("[B] Run each reminder", foreColor: ConsoleColor.Cyan);
+            cc.DrawSeparator(abcd.LineStyle.Double, abcd.LineStyle.Double);
             // foreach
-            // display remindeer name and schedule time
-            var reminderName = "First Reminder"; var nextReminderDate = "2017-Jul-25 0800 hrs";
-            cc.Write($"01. {reminderName} : {nextReminderDate}", tabStop: 1, foreColor: ConsoleColor.Green);
-            // run the associated procedure to get instance details
-            cc.Write($"Found 2 instances", tabStop: 2, foreColor: ConsoleColor.Gray);
-            // foreach instance send reminder
-            var requestNo = "2017051400003";
-            cc.Write($"{requestNo} - Reminder Sent",tabStop: 3, foreColor: ConsoleColor.Red);
-            requestNo = "2017062300016";
-            cc.Write($"{requestNo} - Reminder Sent",tabStop: 3, foreColor: ConsoleColor.Red);
-            reminderName = "Second Reminder"; nextReminderDate = "2017-Jul-25 0800 hrs";
-            cc.Write($"01. {reminderName} : {nextReminderDate}", tabStop: 1, foreColor: ConsoleColor.Green);
-            // run the associated procedure to get instance details
-            cc.Write($"Found 2 instances", tabStop: 2, foreColor: ConsoleColor.Gray);
-            // foreach instance send reminder
-            requestNo = "2017051400003";
-            cc.Write($"{requestNo} - Reminder Sent", tabStop: 3, foreColor: ConsoleColor.Red);
-            requestNo = "2017062300016";
-            cc.Write($"{requestNo} - Reminder Sent", tabStop: 3, foreColor: ConsoleColor.Red);
+            var reminderCount = 1;
+            foreach (DataRow rRow in dtReminders.Rows)
+            {
+                // display reminder details and schedule time                
+                cc.Write($"{reminderCount++}. [{rRow["ReminderRunDate"].ToString()}] {rRow["ReminderName"].ToString()}", tabStop: 1, foreColor: ConsoleColor.Green);
+                cc.DrawSeparator(abcd.LineStyle.Double, abcd.LineStyle.Single);
+                // run the associated procedure to get instance details
+                var dtInstances = reminders.GetInstances(rRow);
+                cc.Write($"Found {dtInstances.Rows.Count} instances", tabStop: 2, foreColor: ConsoleColor.Gray);
+                foreach (DataRow iRow in dtInstances.Rows)
+                {
+                    // foreach instance send reminder
+                    var status = reminders.SendMail(iRow);
+                    cc.Write($"{iRow["RequestNo"].ToString()} - {iRow["LastReminderDate"].ToString()} Reminder Sent", tabStop: 3, foreColor: ConsoleColor.Red);
 
-            cc.DrawSeparator(ColoredConsole.LineStyle.Double, ColoredConsole.LineStyle.Single);
-            cc.Write("End", textPosition: ColoredConsole.TextPosition.Center);
+                }
+                cc.DrawSeparator(abcd.LineStyle.Double, abcd.LineStyle.Single);
+            }
+
+            cc.Write("End", textPosition: abcd.TextPosition.Center);
             cc.DrawBottomLine();
             Console.ReadLine();
         }

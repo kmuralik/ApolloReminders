@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace bcd
 {
@@ -78,22 +76,32 @@ namespace bcd
 
         public void DrawTopLine()
         {
-            drawTopLine(ConsoleLineStyle);
+            drawTopLine(ConsoleLineStyle, ConsoleBackColor, ConsoleLineColor);
         }
 
         public void DrawTopLine(LineStyle lineStyle)
         {
-            drawTopLine(lineStyle);
+            drawTopLine(lineStyle, ConsoleBackColor, ConsoleLineColor);
+        }
+
+        public void DrawTopLine(LineStyle lineStyle, ConsoleColor backColor, ConsoleColor lineColor)
+        {
+            drawTopLine(lineStyle, backColor, lineColor);
         }
 
         public void DrawBottomLine()
         {
-            drawBottomLine(ConsoleLineStyle);
+            drawBottomLine(ConsoleLineStyle, ConsoleBackColor, ConsoleLineColor);
         }
 
         public void DrawBottomLine(LineStyle lineStyle)
         {
-            drawBottomLine(lineStyle);
+            drawBottomLine(lineStyle, ConsoleBackColor, ConsoleLineColor);
+        }
+
+        public void DrawBottomLine(LineStyle lineStyle, ConsoleColor backColor, ConsoleColor lineColor)
+        {
+            drawBottomLine(lineStyle, backColor, lineColor);
         }
 
         public void DrawSeparator(LineStyle verticalLineStyle, LineStyle horizongalLineStyle)
@@ -108,26 +116,33 @@ namespace bcd
                 drawVDHSLine();
         }
 
+        public void DrawBox(string message, LineStyle lineStyle, TextPosition textPosition, int tabStop, TextStyle textStyle, ConsoleColor backColor, ConsoleColor foreColor, ConsoleColor lineColor)
+        {
+            DrawTopLine(lineStyle, backColor, lineColor);
+            Write(message, lineStyle, textPosition, tabStop, textStyle, backColor, foreColor, lineColor);
+            DrawBottomLine(lineStyle, backColor, lineColor);
+        }
+
         public void Write(string message,
             LineStyle lineStyle = LineStyle.Double,
             TextPosition textPosition = TextPosition.Left,
             int tabStop = 0,
             TextStyle textStyle = TextStyle.None,
-            ConsoleColor backcolor = ConsoleColor.Black,
+            ConsoleColor backColor = ConsoleColor.Black,
             ConsoleColor foreColor = ConsoleColor.White,
             ConsoleColor lineColor = ConsoleColor.Yellow)
         {
-            writeLine(message, lineStyle, textPosition, tabStop, textStyle, backcolor, foreColor, lineColor);
+            writeLine(message, lineStyle, textPosition, tabStop, textStyle, backColor, foreColor, lineColor);
         }
 
         #endregion
         //
         #region ***** PRIVATE METHODS *****
 
-        private void drawTopLine(LineStyle ls)
+        private void drawTopLine(LineStyle ls, ConsoleColor backColor, ConsoleColor lineColor)
         {
-            Console.BackgroundColor = ConsoleBackColor;
-            Console.ForegroundColor = ConsoleLineColor;
+            Console.BackgroundColor = backColor;
+            Console.ForegroundColor = lineColor;
             switch (ls)
             {
                 case LineStyle.Single:
@@ -141,10 +156,10 @@ namespace bcd
             Console.ResetColor();
         }
 
-        private void drawBottomLine(LineStyle ls)
+        private void drawBottomLine(LineStyle ls, ConsoleColor backColor, ConsoleColor lineColor)
         {
-            Console.BackgroundColor = ConsoleBackColor;
-            Console.ForegroundColor = ConsoleLineColor;
+            Console.BackgroundColor = backColor;
+            Console.ForegroundColor = lineColor;
             switch (ls)
             {
                 case LineStyle.Single:
@@ -215,6 +230,8 @@ namespace bcd
             }
             else
             {
+                // split the big message into small messages that fit inside the console width
+
                 Console.WriteLine("....................");
             }
             //
@@ -253,9 +270,11 @@ namespace bcd
             }
         }
 
+
         #endregion
 
         #region ***** PUBLIC ENUMS *****
+
         public enum LineStyle
         {
             Single = 1,
