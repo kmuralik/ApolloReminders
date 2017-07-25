@@ -44,7 +44,8 @@ namespace ApolloReminders
                 }
                 cc.DrawSeparator(abcd.LineStyle.Double, abcd.LineStyle.Single);
             }
-
+            cc.Write($"This is a big message to test how lengthy messages will span itself into multiple lines. This sample should span into 2 lines.");
+            cc.DrawSeparator(abcd.LineStyle.Double, abcd.LineStyle.Double);
             cc.Write("End", textPosition: abcd.TextPosition.Center);
             cc.DrawBottomLine();
             Console.ReadLine();

@@ -231,8 +231,11 @@ namespace bcd
             else
             {
                 // split the big message into small messages that fit inside the console width
-
-                Console.WriteLine("....................");
+                var splitMsg = SplitByLength(msg, AvailableWidth);
+                foreach(string bitMsg in splitMsg)
+                {
+                    writeLine(bitMsg, ls, tp, tab, ts, bc, fc, lc);
+                }
             }
             //
         }
@@ -270,6 +273,13 @@ namespace bcd
             }
         }
 
+        private IEnumerable<string> SplitByLength(string str, int maxLength)
+        {
+            for (int index = 0; index < str.Length; index += maxLength)
+            {
+                yield return str.Substring(index, Math.Min(maxLength, str.Length - index));
+            }
+        }
 
         #endregion
 
