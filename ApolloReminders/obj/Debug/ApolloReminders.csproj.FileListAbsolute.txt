@@ -1,6 +1,0 @@
-C:\Projects\DotNet\ApolloReminders\ApolloReminders\bin\Debug\ApolloReminders.exe.config
-C:\Projects\DotNet\ApolloReminders\ApolloReminders\bin\Debug\ApolloReminders.exe
-C:\Projects\DotNet\ApolloReminders\ApolloReminders\bin\Debug\ApolloReminders.pdb
-C:\Projects\DotNet\ApolloReminders\ApolloReminders\obj\Debug\ApolloReminders.csprojResolveAssemblyReference.cache
-C:\Projects\DotNet\ApolloReminders\ApolloReminders\obj\Debug\ApolloReminders.exe
-C:\Projects\DotNet\ApolloReminders\ApolloReminders\obj\Debug\ApolloReminders.pdb
