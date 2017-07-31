@@ -1,8 +1,10 @@
 ﻿using NCrontab;
 using System;
+using System.Collections;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using bcd;
 
 namespace ApolloReminders
 {
@@ -28,6 +30,7 @@ namespace ApolloReminders
                     con.Open();
                     var dr = cmd.ExecuteReader();
                     //
+                    dt.Columns.Add(new DataColumn("RuleId", typeof(int)));
                     dt.Columns.Add(new DataColumn("ReminderName", typeof(string)));
                     dt.Columns.Add(new DataColumn("BindingProcedure", typeof(string)));
                     dt.Columns.Add(new DataColumn("Threshold", typeof(string)));
@@ -52,6 +55,7 @@ namespace ApolloReminders
                         {
                             // GOOD TO GO
                             var row = dt.NewRow();
+                            row["RuleId"] = int.Parse(dr["RuleId"].ToString());
                             row["ReminderName"] = dr["ReminderName"].ToString();
                             row["BindingProcedure"] = dr["BindingProcedure"].ToString();
                             row["Threshold"] = dr["Threshold"].ToString();
@@ -72,15 +76,16 @@ namespace ApolloReminders
             return dt;
         }
 
-        internal bool SendMail(DataRow iRow)
+        internal long SendMail(DataRow iRow)
         {
-            var status = false;
-            // save record to ReminderData
-            // TODO get associated template
-            // TODO parse template
-            // TODO send mail routine
-
+            long dataId = -1;
+            // get rule id
+            var ruleId = int.Parse(iRow["RuleId"].ToString());
+            // get template
+            var tpl = GetTemplate(ruleId);
+            // parse template
             var subject = "License about to expire on " + iRow["ValidityDate"].ToString().Substring(0, 10);
+            subject = Parse(tpl.TemplateSubject, tplVals);
             var body = "blah blah blah blah";
             var sentStatus = 2; // from send mail result (2: queue)
 
@@ -99,19 +104,67 @@ namespace ApolloReminders
                 $" '{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}'," +
                 $" 0)";
             // save data
+            try
+            {
+                using (var con = new SqlConnection(ConStr))
+                {
+                    using (var cmd = con.CreateCommand())
+                    {
+                        cmd.CommandType = CommandType.Text;
+                        cmd.CommandText = qry;
+                        SqlParameter param = new SqlParameter("@ID", SqlDbType.Int, 4);
+                        param.Direction = ParameterDirection.Output;
+                        cmd.Parameters.Add(param);
+                        con.Open();
+                        var x = cmd.ExecuteNonQuery();
+                        if (x > 0)
+                        {
+                            dataId = (long)param.Value;
+                            return dataId;
+                        }
+                    }
+                }
+            }catch(Exception ex)
+            {
+                var x = ex.Message;
+            }
+            //
+            return dataId;
+        }
+
+        private ReminderTemplate GetTemplate(int ruleId)
+        {
+            var tpl = new ReminderTemplate();
             using (var con = new SqlConnection(ConStr))
             {
                 using (var cmd = con.CreateCommand())
                 {
+                    // TODO currently defaults to english language
+                    var qry = $"SELECT * FROM [dbo].[ReminderTemplate] WHERE RuleId = {ruleId} AND LangCode = 'en-US'";
                     cmd.CommandType = CommandType.Text;
                     cmd.CommandText = qry;
                     con.Open();
-                    var x = cmd.ExecuteNonQuery();
-                    if (x > 0) status = true;
+
+                    var reader = cmd.ExecuteReader();
+
+                    while (reader.Read())
+                    {
+                        tpl.TemplateId = int.Parse(reader["TemplateId"].ToString());
+                        tpl.TemplateName = reader["TemplateName"].ToString();
+                        tpl.TemplateSubject = reader["TemplateSubject"].ToString();
+                        tpl.TemplateBody = reader["TemplateBody"].ToString();
+                        tpl.TemplateVars = reader["TemplateVars"].ToString();
+                        tpl.SentTo = reader["SentTo"].ToString();
+                        tpl.CopyTo = reader["CopyTo"].ToString();
+                        tpl.AWID = reader["WorkflowId"].ToString();
+                        tpl.StepId = int.Parse(reader["StepId"].ToString());
+                        tpl.RuleId = int.Parse(reader["RuleId"].ToString());
+                        tpl.LangCode = reader["LangCode"].ToString();
+                    }
+                    
                 }
             }
-            //
-            return status;
+            return tpl;
         }
 
         internal DataTable GetInstances(DataRow row)
@@ -186,5 +239,48 @@ namespace ApolloReminders
                 ConStr = ConfigurationManager.ConnectionStrings[conStrName].ToString();
             }
         }
+
+        private string Parse(string block, Hashtable templateVals)
+        {
+            var mystic = new Mystic(templateVals);
+            mystic.TemplateBlock = block;
+            var parsedBlock = mystic.Parse();
+            return parsedBlock;
+        }
+    }
+
+    public class ReminderTemplate
+    {
+        public int TemplateId { get; set; }
+        public string TemplateName { get; set; }
+        public string TemplateSubject { get; set; }
+        public string TemplateBody { get; set; }
+        public string TemplateVars { get; set; }
+        public string SentTo { get; set; }
+        public string CopyTo { get; set; }
+        public string AWID { get; set; }
+        public int StepId { get; set; }
+        public int RuleId { get; set; }
+        public string LangCode { get; set; }
+    }
+
+    public enum RecipientType
+    {
+        Requester = 1,
+        PreviousApprover = 2,
+        CurrentApprover = 3,
+        PreviousFollowUpUser = 4,
+        CurrentFollowUpUser = 5,
+        NotifyUser = 6,
+        Supplier = 7,
+        Manager = 8,
+        WorkflowAdmin = 9,
+        SiteAdmin = 10,
+        ToEmail = 95,
+        CcEmail = 96,
+        Delegator = 97,
+        PreviousDelegatee = 98,
+        CurrentDelegatee = 99,
+        Email = 0
     }
 }

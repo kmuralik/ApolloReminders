@@ -3,3 +3,6 @@
 ################################################################################
 
 /.vs/ApolloReminders/v15/.suo
+*.suo
+/ApolloReminders/bin/Debug
+*.user
