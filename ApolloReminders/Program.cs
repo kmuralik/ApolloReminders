@@ -38,8 +38,9 @@ namespace ApolloReminders
                 foreach (DataRow iRow in dtInstances.Rows)
                 {
                     // foreach instance send reminder
-                    var status = reminders.SendMail(iRow);
-                    cc.Write($"{iRow["RequestNo"].ToString()} - {iRow["LastReminderDate"].ToString()} Reminder Sent", tabStop: 3, foreColor: ConsoleColor.Red);
+                    var dataId = reminders.SendMail(iRow, int.Parse(rRow["RuleId"].ToString()));
+                    if (dataId > 0)
+                        cc.Write($"{iRow["request_no"].ToString()} - Reminder Sent. Ref No: {dataId}", tabStop: 3, foreColor: ConsoleColor.Red);
 
                 }
                 cc.DrawSeparator(abcd.LineStyle.Double, abcd.LineStyle.Single);

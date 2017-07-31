@@ -14,22 +14,10 @@ namespace ApolloReminders
         {
             //
         }
-        // TODO: Implement Mystic Parser here
-        // and parse the template
 
-        // TODO: copy code from Apollo application to here
-        // and implement the required methods
-
-        public int SendMail()
-        {
-            // TODO do required sending
-            return 0;
-        }
-
-        public bool SendReminder(string toName, string toEmail,
+        public int SendReminder(string toName, string toEmail,
             string ccName, string ccEmail, string subject, string body)
         {
-            var retval = false;
             //
             var fromName = ConfigurationManager.AppSettings["DefaultSenderName"].ToString();
             var fromEmail = ConfigurationManager.AppSettings["DefaultSenderEmail"].ToString();
@@ -48,9 +36,9 @@ namespace ApolloReminders
             msg.BodyEncoding = Encoding.UTF8;
             msg.Priority = MailPriority.Normal;
             //
-            retval = SendReminder(msg);
-            //
-            return retval;
+            if (SendReminder(msg))
+                return 1;
+            return 0;
         }
 
         private bool SendReminder(MailMessage msg)

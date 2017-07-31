@@ -55,7 +55,7 @@ namespace ApolloReminders
                         {
                             // GOOD TO GO
                             var row = dt.NewRow();
-                            row["RuleId"] = int.Parse(dr["RuleId"].ToString());
+                            row["RuleId"] = int.Parse(dr["ReminderRuleId"].ToString());
                             row["ReminderName"] = dr["ReminderName"].ToString();
                             row["BindingProcedure"] = dr["BindingProcedure"].ToString();
                             row["Threshold"] = dr["Threshold"].ToString();
@@ -76,33 +76,71 @@ namespace ApolloReminders
             return dt;
         }
 
-        internal long SendMail(DataRow iRow)
+        internal long SendMail(DataRow iRow, int ruleId)
         {
             long dataId = -1;
-            // get rule id
-            var ruleId = int.Parse(iRow["RuleId"].ToString());
             // get template
             var tpl = GetTemplate(ruleId);
+            // get template values
+            Hashtable tplVals = new Hashtable();
+            foreach (DataColumn c in iRow.Table.Columns)
+            {
+                tplVals.Add(c.ToString(), iRow[c].ToString());
+            }
             // parse template
-            var subject = "License about to expire on " + iRow["ValidityDate"].ToString().Substring(0, 10);
-            subject = Parse(tpl.TemplateSubject, tplVals);
-            var body = "blah blah blah blah";
-            var sentStatus = 2; // from send mail result (2: queue)
+            var subject = ParseBlock(tpl.TemplateSubject, tplVals);
+            var body = ParseBlock(tpl.TemplateBody, tplVals);
+            var toName = string.Empty;
+            var toEmail = string.Empty;
+            var ccName = string.Empty;
+            var ccEmail = string.Empty;
+
+            if (tpl.SentTo.Contains(","))
+            {
+                var al = tpl.SentTo.Split(',');
+                foreach(string ai in al)
+                {
+                    toName += GetEmail("NAME", (RecipientType)int.Parse(tpl.SentTo), tplVals);
+                    toEmail += GetEmail("EMAIL", (RecipientType)int.Parse(tpl.SentTo), tplVals);
+                }
+            }
+            else
+            {
+                toName = GetEmail("NAME", (RecipientType)int.Parse(tpl.SentTo), tplVals);
+                toEmail = GetEmail("EMAIL", (RecipientType)int.Parse(tpl.SentTo), tplVals);
+            }
+
+            if (tpl.CopyTo.Contains(","))
+            {
+                var al = tpl.SentTo.Split(',');
+                foreach (string ai in al)
+                {
+                    ccName += GetEmail("NAME", (RecipientType)int.Parse(tpl.CopyTo), tplVals);
+                    ccEmail += GetEmail("EMAIL", (RecipientType)int.Parse(tpl.CopyTo), tplVals);
+                }
+            }
+            else
+            {
+                ccName = GetEmail("NAME", (RecipientType)int.Parse(tpl.CopyTo), tplVals);
+                ccEmail = GetEmail("EMAIL", (RecipientType)int.Parse(tpl.CopyTo), tplVals);
+            }
+            //
+            var sentStatus = new MailSender().SendReminder(toName, toEmail, ccName, ccEmail, subject, body); // from send mail result (2: queue)
 
             var qry = $"INSERT INTO [dbo].[ReminderData] VALUES (" +
-                $" '{DateTime.Parse(iRow["ReminderDate"].ToString()).ToString("yyyy-MM-dd")}'," +
+                $" '{DateTime.Parse(iRow["reminder_date"].ToString()).ToString("yyyy-MM-dd")}'," +
                 $" '{subject}'," +
                 $" '{body}'," +
-                $" '{iRow["RequesterEmail"].ToString()}'," +
-                $" '{iRow["OwnerEmail"].ToString()}'," +
+                $" '{iRow["requester_email"].ToString()}'," +
+                $" '{iRow["workflow_admin_email"].ToString()}'," +
                 $" 2," +
                 $" 4," +
                 $" 1," +
-                $" {int.Parse(iRow["RequestId"].ToString())}," +
-                $" '{iRow["AWID"].ToString()}'," +
+                $" {int.Parse(iRow["request_id"].ToString())}," +
+                $" '{iRow["awid"].ToString()}'," +
                 $" {sentStatus}," +
                 $" '{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")}'," +
-                $" 0)";
+                $" 0) SET @ID = SCOPE_IDENTITY();";
             // save data
             try
             {
@@ -119,17 +157,71 @@ namespace ApolloReminders
                         var x = cmd.ExecuteNonQuery();
                         if (x > 0)
                         {
-                            dataId = (long)param.Value;
+                            dataId = long.Parse(param.Value.ToString());
                             return dataId;
                         }
                     }
                 }
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 var x = ex.Message;
             }
             //
             return dataId;
+        }
+
+        private string GetEmail(string nameEmail, RecipientType recipient, Hashtable tplVals)
+        {
+            var recipientText = getRecipientText(recipient);
+            if (nameEmail == "NAME")
+            {
+                recipientText = recipientText + "_name";
+            }
+            else if (nameEmail == "EMAIL")
+            {
+                recipientText = recipientText + "_email";
+            }
+            return tplVals[recipientText].ToString();
+        }
+
+        private string getRecipientText(RecipientType recipient)
+        {
+            switch (recipient)
+            {
+                case RecipientType.Requester:
+                    return "requester";
+                case RecipientType.PreviousApprover:
+                    return "previous_approver";
+                case RecipientType.CurrentApprover:
+                    return "current_approver";
+                case RecipientType.PreviousFollowUpUser:
+                    return "previous_followup_user";
+                case RecipientType.CurrentFollowUpUser:
+                    return "current_followup_user";
+                case RecipientType.NotifyUser:
+                    return "notify_user";
+                case RecipientType.Supplier:
+                    return "supplier";
+                case RecipientType.Manager:
+                    return "manager";
+                case RecipientType.WorkflowAdmin:
+                    return "workflow_admin";
+                case RecipientType.SiteAdmin:
+                    return "site_admin";
+                case RecipientType.ToEmail:
+                    return "to_email";
+                case RecipientType.CcEmail:
+                    return "cc_email";
+                case RecipientType.Delegator:
+                    return "delegator";
+                case RecipientType.PreviousDelegatee:
+                    return "previous_delegatee";
+                case RecipientType.CurrentDelegatee:
+                    return "current_delegatee";
+                default:
+                    return "email";
+            }
         }
 
         private ReminderTemplate GetTemplate(int ruleId)
@@ -161,7 +253,7 @@ namespace ApolloReminders
                         tpl.RuleId = int.Parse(reader["RuleId"].ToString());
                         tpl.LangCode = reader["LangCode"].ToString();
                     }
-                    
+
                 }
             }
             return tpl;
@@ -189,7 +281,7 @@ namespace ApolloReminders
                     foreach (DataRow dr in dt.Rows)
                     {
                         // remove rows that have already been addressed or expired
-                        if (int.Parse(row["RunCount"].ToString()) > int.Parse(dr["RunCount"].ToString()))
+                        if (int.Parse(row["RunCount"].ToString()) > int.Parse(dr["run_count"].ToString()))
                         {
                             // add this row
                             dtNew.Rows.Add(dr.ItemArray);
@@ -201,7 +293,7 @@ namespace ApolloReminders
             return dtNew;
         }
 
-        private object ParseThreshold(string threshold)
+        private string ParseThreshold(string threshold)
         {
             var x = threshold.Split(' ');
             string y = string.Empty;
@@ -240,7 +332,7 @@ namespace ApolloReminders
             }
         }
 
-        private string Parse(string block, Hashtable templateVals)
+        private string ParseBlock(string block, Hashtable templateVals)
         {
             var mystic = new Mystic(templateVals);
             mystic.TemplateBlock = block;
