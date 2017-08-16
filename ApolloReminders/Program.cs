@@ -14,10 +14,13 @@ namespace ApolloReminders
             cc.DrawBox("Apollo Reminders", abcd.LineStyle.Double, abcd.TextPosition.Center, 0, abcd.TextStyle.SpacedCaps, ConsoleColor.DarkBlue, ConsoleColor.Green, ConsoleColor.Yellow);
 
             cc.DrawTopLine();
+            cc.Write("[A] Get Current Reminders", foreColor: ConsoleColor.Cyan);
             // get all reminders that need to run today
             var dtReminders = reminders.GetReminders();
             var todayCount = dtReminders.Rows.Count;
-            cc.Write("[A] Get Today's Reminders", foreColor: ConsoleColor.Cyan);
+            // for day
+            //cc.Write("[A] Get Today's Reminders", foreColor: ConsoleColor.Cyan);
+            // for hour
             cc.DrawSeparator(abcd.LineStyle.Double, abcd.LineStyle.Double);
             // get the count and display
             cc.Write($"A total of {todayCount} reminders found", textPosition: abcd.TextPosition.Left, tabStop: 1, foreColor: ConsoleColor.Gray);
@@ -29,7 +32,7 @@ namespace ApolloReminders
             var reminderCount = 1;
             foreach (DataRow rRow in dtReminders.Rows)
             {
-                // display reminder details and schedule time                
+                // display reminder details and schedule time 
                 cc.Write($"{reminderCount++}. [{rRow["ReminderRunDate"].ToString()}] {rRow["ReminderName"].ToString()}", tabStop: 1, foreColor: ConsoleColor.Green);
                 cc.DrawSeparator(abcd.LineStyle.Double, abcd.LineStyle.Single);
                 // run the associated procedure to get instance details
@@ -45,7 +48,8 @@ namespace ApolloReminders
                 }
                 cc.DrawSeparator(abcd.LineStyle.Double, abcd.LineStyle.Single);
             }
-            cc.Write($"This is a big message to test how lengthy messages will span itself into multiple lines. This sample should span into 2 lines.");
+            cc.Write("All reminders whether they are sent successfully or not will be available in 'ReminderData' table for reference along with the mail content.");
+            cc.Write("Press 'Enter' to quit");
             cc.DrawSeparator(abcd.LineStyle.Double, abcd.LineStyle.Double);
             cc.Write("End", textPosition: abcd.TextPosition.Center);
             cc.DrawBottomLine();

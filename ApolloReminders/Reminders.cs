@@ -5,11 +5,14 @@ using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using bcd;
+using abcd = bcd.ColoredConsole;
 
 namespace ApolloReminders
 {
     public class Reminders
     {
+        abcd cc = new abcd();
+
         public string ConStr { get; set; }
 
         public Reminders()
@@ -40,18 +43,26 @@ namespace ApolloReminders
                     dt.Columns.Add(new DataColumn("ExpiryAction", typeof(int)));
                     dt.Columns.Add(new DataColumn("IntervalType", typeof(int)));
                     dt.Columns.Add(new DataColumn("IntervalValue", typeof(string)));
+                    dt.Columns.Add(new DataColumn("TargetTZID", typeof(string)));
                     dt.Columns.Add(new DataColumn("ReminderPriority", typeof(int)));
                     dt.Columns.Add(new DataColumn("ReminderRunDate", typeof(DateTime)));
                     //
                     while (dr.Read())
                     {
                         // find out next run date based on interval value (cron tab)
+                        cc.Write($"\tVerifying reminder {dr["ReminderName"].ToString()}");
                         //Console.WriteLine($"{dr[1].ToString()} - {dr["IntervalValue"].ToString()}");
                         var cron = dr["IntervalValue"].ToString();
+                        var tzid = dr["TargetTZID"].ToString();
                         var s = CrontabSchedule.Parse(cron);
-                        var start = DateTime.Now.Date.AddDays(-1).AddHours(8);
+                        // runs on every day
+                        //var start = DateTime.Now.Date.AddDays(-1).AddHours(8);
+                        //var occurence = s.GetNextOccurrence(start);
+                        // runs on every hour
+                        var start = getTargetDateTime(tzid).AddMinutes(-59);
                         var occurence = s.GetNextOccurrence(start);
-                        if (occurence.Date == DateTime.Now.Date)
+                        var currDt = RoundToHour(getTargetDateTime(tzid));
+                        if (occurence == currDt)
                         {
                             // GOOD TO GO
                             var row = dt.NewRow();
@@ -65,6 +76,7 @@ namespace ApolloReminders
                             row["ExpiryAction"] = int.Parse(dr["ExpiryAction"].ToString());
                             row["IntervalType"] = int.Parse(dr["IntervalType"].ToString());
                             row["IntervalValue"] = dr["IntervalValue"].ToString();
+                            row["TargetTZID"] = dr["TargetTZID"].ToString();
                             row["ReminderPriority"] = int.Parse(dr["ReminderPriority"].ToString());
                             row["ReminderRunDate"] = occurence;
                             dt.Rows.Add(row);
@@ -129,8 +141,8 @@ namespace ApolloReminders
 
             var qry = $"INSERT INTO [dbo].[ReminderData] VALUES (" +
                 $" '{DateTime.Parse(iRow["reminder_date"].ToString()).ToString("yyyy-MM-dd")}'," +
-                $" '{subject}'," +
-                $" '{body}'," +
+                $" N'{subject}'," +
+                $" N'{body}'," +
                 $" '{iRow["requester_email"].ToString()}'," +
                 $" '{iRow["workflow_admin_email"].ToString()}'," +
                 $" 2," +
@@ -338,6 +350,24 @@ namespace ApolloReminders
             mystic.TemplateBlock = block;
             var parsedBlock = mystic.Parse();
             return parsedBlock;
+        }
+
+        private DateTime RoundToHour(DateTime dt)
+        {
+            long ticks = dt.Ticks + 18000000000;
+            return new DateTime(ticks - ticks % 36000000000, dt.Kind);
+        }
+
+        private DateTime getTargetDateTime(string tziTargetId)
+        {
+            return TimeZoneInfo.ConvertTime(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById(tziTargetId));
+        }
+
+        private DateTime convertDateTime(DateTime dt, string tziSourceId, string tziTargetId)
+        {
+            return TimeZoneInfo.ConvertTime(dt, 
+                TimeZoneInfo.FindSystemTimeZoneById(tziSourceId), 
+                TimeZoneInfo.FindSystemTimeZoneById(tziTargetId));
         }
     }
 
